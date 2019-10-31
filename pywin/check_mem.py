@@ -234,6 +234,18 @@ class ShanbayMemData:
     return res
 
 
+  # 获取组龄为 n 天的用户
+  def GetAgeNum(self, tdata, age):
+    res = []
+    tmpData = copy.deepcopy(tdata)
+    # 默认是贡献值排名，因此测试后 120 名用户即可
+    for i in range(0, len(tmpData)):
+      if tmpData[i]['age'] == age:
+        res.append(tmpData[i])
+    # s.SaveDataToFile(res, fileType='tmp2') # test code
+    return res
+
+
   # 基于本地数据的指定起始和结尾日期，这段时间之间，各个用户数据的差值
   # item item 只能是 filterItems 中的一个值，key 差值名称
   # startDate, endDate 的格式为 19970101，个位数日期用 0 补全
@@ -282,12 +294,13 @@ class ShanbayMemData:
     posMax = int()
     posMin = int()
     for i in os.listdir(os.getcwd()):
-      if max < int(i[-2:]):
-        max = int(i[-2:])
-        posMax = i
-      if min > int(i[-2:]):
-        min = int(i[-2:])
-        posMin = i
+      if i[0:5] == self.FILTER_DATA:
+        if max < int(i[-2:]):
+          max = int(i[-2:])
+          posMax = i
+        if min > int(i[-2:]):
+          min = int(i[-2:])
+          posMin = i
 
     with open(posMax, 'r', encoding='utf-8') as f:
       dataMax = json.loads(f.read())['MemInfo']
@@ -370,7 +383,19 @@ class ShanbayMemData:
   def GetAgeBelow21(self):
     return(self.GetAgeBelowNum(self.validData['MemInfo'], 21))
 
-    
+  # 获得组龄为 100 天的用户，仅作为案例可以设置为其他日子的用户
+  def GetAge100(self):
+    return(self.GetAgeNum(self.validData['MemInfo'], 100))
+
+  # 筛选出满整百天数的人
+  def GetAgeEach100(self):
+    res = {}
+    for i in range(20):
+      i += 1
+      # s.SaveDataToFile(self.GetAgeNum(self.validData['MemInfo'], 100*i), fileType='Age_'+str(100*i)+'_')
+      res[i*100] = self.GetAgeNum(self.validData['MemInfo'], 100*i)
+    return res
+
   # 从指定日期的文件中获取贡献值前十用户
   def GetTopPoints10(self):
     return(self.filterBtmNum(self.validData['MemInfo'], 10, 'points'))
@@ -446,4 +471,4 @@ if __name__ == '__main__':
   s.TimeCnt(s.END_TIME)
   s.calPointMonthTop10()
   s.calRankMonthTop10()
-  
+  print(s.GetAgeEach100())
