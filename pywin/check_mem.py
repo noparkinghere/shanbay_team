@@ -1,9 +1,19 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
-# 小组成员信息获取，数据筛选模块
-# 本程序主要调用扇贝提供的 API 来帮助进行群组的管理
-# 部分功能采用爬虫技术
 
+"""
+    Created on 2019/12/2 17:33
+    ————————————————————————————————————————————————————————————————————
+    @File Name      :  ss.py
+    @Author         :  Frank
+    @Description    :
+      小组成员信息获取，数据筛选模块
+      本程序主要调用扇贝提供的 API 来帮助进行群组的管理
+      部分功能采用爬虫技术
+    ————————————————————————————————————————————————————————————————————
+    @Change Activity:
+
+"""
 
 import requests
 import json
@@ -11,34 +21,47 @@ import time
 import os
 import copy
 
-# 获取全体组员打卡信息
-class ShanbayMemData:
-  START_TIME = 'start_time'       # 开始时间的常量，只用来判断
-  END_TIME = 'end_time'           # 结束时间的常量，只用来判断
-  StartTime = ''                  # 计时器，程序开始时间
-  EndTime = ''                    # 计时器，程序结束时间
-  cnt = 0   # test code
-  data = {}                       # 存储从扇贝获取数据后的初步处理后的有效数据，包括小组信息和用户信息
-  members = []                    # 为 data 字典中一部分，主要暂存用户信息
-  validData = {}                  # data 的数据存放到文件中，再从文件中读取放入到 validData 变量中。
-  filterItems = {'rank':'rank', 'points':'points', 'age':'age', 'chkDay':'checkin_days', 'chkRate':'checkin_rate'}   # 可用来进行筛选的几个数据项
+#
+class MemDataBasic():
+  """
+    获取全体组员打卡信息
+  """
+  ORG_DATA = 'org_data_'  # 存储扇贝 api 获取的原始数据文件前缀，暂未使用
+  FILTER_DATA = 'data_'  # 从扇贝 api 处理后的有效数据文件前缀
 
-  # 存储文件名称的相关变量
-  fileNameDate = time.strftime('%Y%m%d', time.localtime())        # 获取本地时间的元组转换为字符串
-  dirNameYear = fileNameDate[-8:-4]                               # 文件名中的年份
-  dirNameMonth = fileNameDate[-4:-2]                              # 文件名中的月份
-  ORG_DATA = 'org_data_'                                          # 存储扇贝 api 获取的原始数据文件前缀，暂未使用
-  FILTER_DATA = 'data_'                                           # 从扇贝 api 处理后的有效数据文件前缀
-  
-  # 初始化数据
   def __init__(self, teamName = '35K', teamID = 10879):
+    """
+      初始化，创建目录，跳转路径等操作
+    :param teamName:
+    :param teamID:
+    """
+
+    self.START_TIME = 'start_time'  # 开始时间的常量，只用来判断
+    self.END_TIME = 'end_time'  # 结束时间的常量，只用来判断
+    self.StartTime = ''  # 计时器，程序开始时间
+    self.EndTime = ''  # 计时器，程序结束时间
+    self.cnt = 0  # test code
+    self.data = {}  # 存储从扇贝获取数据后的初步处理后的有效数据，包括小组信息和用户信息
+    self.members = []  # 为 data 字典中一部分，主要暂存用户信息
+    self.validData = {}  # data 的数据存放到文件中，再从文件中读取放入到 validData 变量中。
+    self.filterItems = {'rank': 'rank',
+                        'points': 'points',
+                        'age': 'age',
+                        'chkDay': 'checkin_days',
+                        'chkRate': 'checkin_rate'}  # 可用来进行筛选的几个数据项
+
+    # 存储文件名称的相关变量
+    self.fileNameDate = time.strftime('%Y%m%d', time.localtime())  # 获取本地时间的元组转换为字符串
+    self.dirNameYear = self.fileNameDate[-8:-4]  # 文件名中的年份
+    self.dirNameMonth = self.fileNameDate[-4:-2]  # 文件名中的月份
+
     self.teamName = teamName
     self.teamID = teamID
     self.StartTime = time.time()
-
+    
     # 在上级目录下新建 data 目录，存在则进入该目录，否则创建该目录
     os.chdir('..')
-    os.chdir('..')
+    # os.chdir('..')
 
     for i in os.listdir(os.getcwd()):
       if i == 'data':
@@ -79,30 +102,41 @@ class ShanbayMemData:
       os.chdir(self.dirNameMonth)   # 迁移到指定目录      
 
 
-  # 保存数据函数,data ： 实际数据；
-  # date：文件名中的日期，具体日期格式如 19700101
-  # fileType：前缀表示文件类型
-  def SaveDataToFile(self, data, date=fileNameDate, fileType=FILTER_DATA):
-    # 保存原始数据
-    fileName = fileType + date
+  def SaveDataToFile(self, data, fileType=FILTER_DATA):
+    """
+      保存数据函数
+    :param data: 实际要保存的数据
+    :param date: 文件名中的日期，具体日期格式如 19700101
+    :param fileType: 前缀表示文件类型
+    :return:
+    """
+
+    fileName = fileType + self.fileNameDate
     with open(fileName, 'w', encoding='utf-8') as f:
       f.write(json.dumps(data))
     
     
-  # 从文件中读取数据，返回结果给 validData，后面数据筛选大都从这边读原始数据
-  # date：文件名中的日期，具体日期格式如 19700101
-  # fileType：前缀表示文件类型
-  def ReadDataFromFile(self, date=fileNameDate, fileType=FILTER_DATA):
-    fileName = fileType + date
+  def ReadDataFromFile(self, fileType=FILTER_DATA):
+    """
+      从文件中读取数据，返回结果给
+    :param date: 文件名中的日期，具体日期格式如 19700101
+    :param fileType: 前缀表示文件类型
+    :return:
+    """
+    fileName = fileType + self.fileNameDate
     with open(fileName, 'r', encoding='utf-8') as f:
       res = json.loads(f.read())
     self.validData = res
     # print(self.validData)
 
 
-  # 通过扇贝提供的 api 获得小组成员的全部打卡信息
-  # 对这个信息进行筛选，只保留个人数据相关的有效信息，存储到本地文件中
-  def GetTeamAllMemMsg(self): 
+  def GetTeamAllMemMsg(self):
+    """
+      通过扇贝提供的 api 获得小组成员的全部打卡信息
+      对这个信息进行筛选，只保留个人数据相关的有效信息，存储到本地文件中
+    :return: None
+    """
+    
     # 获取末尾数据，获得实际人数是否读 api 可用等信息
     url = "https://www.shanbay.com/api/v1/team/"+ str(self.teamID) + "/member/?page="
     kw = '70'
@@ -142,6 +176,7 @@ class ShanbayMemData:
             "checkin_rate":jdata['data']['members'][i]['checkin_rate']
             }
           self.members.append(SigMemMsg)
+          
       # 筛选出最后一页数据，如 61 页，则筛选出第 61 页的数据，如 603 个数据，最后一页则是 3 个数据
       elif i == baseData['total']//10+1:
         for i in range(baseData['total']%10):
@@ -164,11 +199,25 @@ class ShanbayMemData:
       print(self.cnt)  # test code
       
     self.data['MemInfo'] = self.members                         # members 是 data 中的主要数据内容
-    self.SaveDataToFile(self.data, date=self.fileNameDate, fileType=self.FILTER_DATA)
+    self.SaveDataToFile(self.data, fileType=self.FILTER_DATA)
 
 
-  # 筛选出前 n 的数据，item 只能是 filterItems 中的一个值，且不能为 "checkin_rate"
+  def filterUnchecked(self, tdata):
+    res = []
+    tmpData = copy.deepcopy(tdata)
+    for i in range(len(tmpData)):
+      if tmpData[i]['checkined_today'] == False:
+        res.append(tmpData[i])
+    return res
+
   def filterTopNum(self, tdata, num, item):
+    """
+      筛选出前 n 的数据，
+    :param tdata: 原始数据
+    :param num: 需要筛选出的前 n 个
+    :param item: 只能是 filterItems 中的一个值，且不能为 "checkin_rate"
+    :return:
+    """
     res = []
     tmpData = copy.deepcopy(tdata)
     for i in range(num):
@@ -183,8 +232,15 @@ class ShanbayMemData:
     return res 
     
   
-  # 筛选出后 n 的数据，item 只能是 filterItems 中的一个值，且不能为 "checkin_rate"
+
   def filterBtmNum(self,tdata, num, item):
+    """
+      筛选出后 n 的数据
+    :param tdata: 原始数据
+    :param num:
+    :param item: 只能是 filterItems 中的一个值，且不能为 "checkin_rate"
+    :return:
+    """
     res = []
     tmpData = copy.deepcopy(tdata)
     for i in range(num):
@@ -199,8 +255,13 @@ class ShanbayMemData:
     return res 
 
 
-  # 打卡率筛选最低的 n 组数据
   def filterChkRate(self, tdata, num):
+    """
+      打卡率筛选最低的 n 组数据
+    :param tdata: 原始数据
+    :param num:
+    :return:
+    """
     res = []
     tmpData = copy.deepcopy(tdata)
     # print(tmpData)
@@ -234,8 +295,13 @@ class ShanbayMemData:
     return res
 
 
-  # 获取组龄为 n 天的用户
   def GetAgeNum(self, tdata, age):
+    """
+      获取组龄为 n 天的用户
+    :param tdata:
+    :param age:
+    :return:
+    """
     res = []
     tmpData = copy.deepcopy(tdata)
     # 默认是贡献值排名，因此测试后 120 名用户即可
@@ -246,10 +312,18 @@ class ShanbayMemData:
     return res
 
 
-  # 基于本地数据的指定起始和结尾日期，这段时间之间，各个用户数据的差值
-  # item item 只能是 filterItems 中的一个值，key 差值名称
-  # startDate, endDate 的格式为 19970101，个位数日期用 0 补全
   def calThisPeriodData(self, startDate, endDate, item, key):
+    """
+      基于本地数据的指定起始和结尾日期，这段时间之间，各个用户数据的差值
+      item item 只能是 filterItems 中的一个值，key 差值名称
+      startDate, endDate 的格式为 19970101，个位数日期用 0 补全
+    :param startDate:
+    :param endDate:
+    :param item:
+    :param key:
+    :return:
+    """
+    
     os.chdir(self.CurFileDir)  # 回归当前文件目录路径
     os.chdir(self.teamName)     # 跳转到指定小组名称路径
     os.chdir(startDate[-8:-4])  # 迁移到指定目录
@@ -280,10 +354,15 @@ class ShanbayMemData:
     return res
 
 
-  # 基于本地数据的本月数据筛选，item 进行筛选的项目，key 差值名称
-  # 计算当月截止目前为止，首尾天数中各个用户数据的差值
-  # 首日未必是 1，尾日也未必是 30，而是选择文件夹中最大和最小的进行计算
   def calThisMonthData(self, item, key):
+    """
+      基于本地数据的本月数据筛选，item 进行筛选的项目，key 差值名称
+      计算当月截止目前为止，首尾天数中各个用户数据的差值
+      首日未必是 1，尾日也未必是 30，而是选择文件夹中最大和最小的进行计算
+    :param item:
+    :param key:
+    :return:
+    """
     os.chdir(self.CurFileDir)
     os.chdir(self.teamName)
     os.chdir(self.dirNameYear)  # 迁移到指定目录
@@ -321,17 +400,26 @@ class ShanbayMemData:
     return res
 
 
-  # 删除某指定文件或文件夹
   def DelOldDataFile(self, fileName):
+    """
+      删除某指定文件或文件夹
+    :param fileName:
+    :return:
+    """
     if os.path.isdir(fileName):
       os.rmdir(fileName)
     elif os.path.isfile(fileName):
       os.remove(fileName)
 
 
-  # 删除从开始日期到截止日期之间的旧文件旧文件
-  # 未经严格测试，慎用
   def DelOldDataFile(self, startDate='', endDate=''):
+    """
+      删除从开始日期到截止日期之间的旧文件旧文件
+      未经严格测试，慎用
+    :param startDate:
+    :param endDate:
+    :return:
+    """
     os.chdir(self.CurFileDir)  # 回归当前文件目录路径
     os.chdir(self.teamName)     # 跳转到指定小组名称路径
 
@@ -369,26 +457,47 @@ class ShanbayMemData:
               self.DelOldDataFile(i)
 
 
-  #*****************************************************************************
-  # 以下代码都是常用操作的示例代码，是对上面一些功能函数的组合使用，方便用户调用
-  # 实际使用时，更建议根据自己的需求对上面的代码进行组合调用，例如：想要获取年贡献榜前 10
-  # 的用户，则可以在 calThisPeriodData 输入 20190101 ，20191231 和 points
-  #*****************************************************************************
-  # 获取打卡天数前十的用户
+class MemDataCommon(MemDataBasic):
+  """
+    以下代码都是常用操作的示例代码，是对上面一些功能函数的组合使用，方便用户调用
+    实际使用时，更建议根据自己的需求对上面的代码进行组合调用，例如：想要获取年贡献榜前 10
+    的用户，则可以在 calThisPeriodData 输入 20190101 ，20191231 和 points
+    获取打卡天数前十的用户
+  """
+
+  def filterUncheckedID(self):
+    return([i['nickname'] for i in self.filterUnchecked(self.validData['MemInfo'])])
+    
+  def filterUncheckedName(self):
+    return([i['id'] for i in self.filterUnchecked(self.validData['MemInfo'])])
+
   def GetChkDaysTop10(self):
+    """
+      获取打卡排名前十的用户
+    :return:
+    """
     return(self.filterTopNum(self.validData['MemInfo'], 10, 'checkin_days'))
     
     
-  # 从指定日期的文件中获取组龄低于 21 天的用户
   def GetAgeBelow21(self):
+    """
+      从指定日期的文件中获取组龄低于 21 天的用户
+    :return:
+    """
     return(self.GetAgeBelowNum(self.validData['MemInfo'], 21))
 
-  # 获得组龄为 100 天的用户，仅作为案例可以设置为其他日子的用户
   def GetAge100(self):
+    """
+      获得组龄为 100 天的用户，仅作为案例可以设置为其他日子的用户
+    :return:
+    """
     return(self.GetAgeNum(self.validData['MemInfo'], 100))
 
-  # 筛选出满整百天数的人
   def GetAgeEach100(self):
+    """
+      筛选出满整百天数的人
+    :return:
+    """
     res = {}
     for i in range(20):
       i += 1
@@ -396,47 +505,72 @@ class ShanbayMemData:
       res[i*100] = self.GetAgeNum(self.validData['MemInfo'], 100*i)
     return res
 
-  # 从指定日期的文件中获取贡献值前十用户
   def GetTopPoints10(self):
+    """
+      从指定日期的文件中获取贡献值前十用户
+    :return:
+    """
     return(self.filterBtmNum(self.validData['MemInfo'], 10, 'points'))
   
   
-  # 从指定日期的文件中获取组龄前十用户
   def GetTopAge10(self):
+    """
+      从指定日期的文件中获取组龄前十用户
+    :return:
+    """
     return(self.filterBtmNum(self.validData['MemInfo'], 10, 'age'))
   
     
-  # 从指定日期的文件中获取组打卡天数前十用户
   def GetTopChkDays10(self):
+    """
+      从指定日期的文件中获取组打卡天数前十用户
+    :return:
+    """
     return(self.filterBtmNum(self.validData['MemInfo'], 10, 'checkin_days'))  
   
   
-  # 从指定日期的文件中获取打卡率后十用户
   def GetChkRateBtm10(self):
+    """
+      从指定日期的文件中获取打卡率后十用户
+    :return:
+    """
     return(self.filterChkRate(self.validData['MemInfo'], 10))
 
   
-  # 本月用户贡献排名前十用户
   def calPointMonthTop10(self):
+    """
+      本月用户贡献排名前十用户
+    :return:
+    """
     res = self.filterTopNum(self.calThisMonthData(s.filterItems['points'], 'gongxian'), 10, 'gongxian')
     s.SaveDataToFile(res, fileType='tmp1')
   
   
-  # 本月排名进步最快前十用户
   def calRankMonthTop10(self):
+    """
+      本月排名进步最快前十用户
+    :return:
+    """
     res = self.filterBtmNum(self.calThisMonthData(s.filterItems['rank'], 'paiming'), 10, 'paiming')
     s.SaveDataToFile(res, fileType='tmp2')
   
   
-  # 本月被移除用户信息
-  # 预留，功能未必在这边实现
   def DelMemlist():
+    """
+      本月被移除用户信息
+      预留，功能未必在这边实现
+    :return:
+    """
     pass
     
   
-  # 计时函数，统计整个程序执行的时间
-  # 时间尤其是 api 爬取用户数据，整个需要控制在有效范围内，否则发送警报
   def TimeCnt(self, state):
+    """
+      计时函数，统计整个程序执行的时间
+      时间尤其是 api 爬取用户数据，整个需要控制在有效范围内，否则发送警报
+    :param state:
+    :return:
+    """
     if state == self.START_TIME:
       self.StartTime = time.time()
     elif state == self.END_TIME:
@@ -447,28 +581,60 @@ class ShanbayMemData:
     return optTime
 
 
-  # 多层筛选，从某预处理过的文件中再次筛选出数据
-  # 预留用户外部可自己调用几个函数组合。
-  # 实际这个函数不再补充，用户自行组合调用以上功能即可
   def DIYFilterData(self):
+    """
+      多层筛选，从某预处理过的文件中再次筛选出数据
+      预留用户外部可自己调用几个函数组合。
+      实际这个函数不再补充，用户自行组合调用以上功能即可
+    :return:
+    """
     pass
 
 
 if __name__ == '__main__':
-  # teamName = '35K'
-  # teamID = 10879
-  # s = ShanbayMemData(teamName, teamID)
-  s = ShanbayMemData()
-  s.GetTeamAllMemMsg()
-  s.ReadDataFromFile()
+  try:
+    teamName = '35K'
+    teamID = 10879
+    # s = ShanbayMemData(teamName, teamID)
+    s = MemDataCommon(teamName, teamID)
+    s.GetTeamAllMemMsg()
+    s.ReadDataFromFile()
+    
+    tmp = s.GetChkDaysTop10()
+    # s.SaveDataToFile(tmp, fileType='tmp')
+    
+    tmp = s.GetChkRateBtm10()
+    # s.SaveDataToFile(tmp, fileType='tmp1')
+    s.GetAgeBelow21()
+    s.TimeCnt(s.END_TIME)
+    s.calPointMonthTop10()
+    s.calRankMonthTop10()
+    print(s.GetAgeEach100())
+    print(s.filterUncheckedID())
+    print(s.filterUncheckedName())
   
-  tmp = s.GetChkDaysTop10()
-  # s.SaveDataToFile(tmp, fileType='tmp')
+    #
+    teamName = '兰芷馥郁'
+    teamID = 34543
+    # s = ShanbayMemData(teamName, teamID)
+    s = MemDataCommon(teamName, teamID)
+    s.GetTeamAllMemMsg()
+    s.ReadDataFromFile()
   
-  tmp = s.GetChkRateBtm10()
-  # s.SaveDataToFile(tmp, fileType='tmp1')
-  s.GetAgeBelow21()
-  s.TimeCnt(s.END_TIME)
-  s.calPointMonthTop10()
-  s.calRankMonthTop10()
-  print(s.GetAgeEach100())
+    tmp = s.GetChkDaysTop10()
+    # s.SaveDataToFile(tmp, fileType='tmp')
+  
+    tmp = s.GetChkRateBtm10()
+    # s.SaveDataToFile(tmp, fileType='tmp1')
+    s.GetAgeBelow21()
+    s.TimeCnt(s.END_TIME)
+    s.calPointMonthTop10()
+    s.calRankMonthTop10()
+    print(s.GetAgeEach100())
+    print(s.filterUncheckedID())
+    print(s.filterUncheckedName())
+    
+  except Exception as result:
+    print("错误位置： %s" % result)
+    
+  
