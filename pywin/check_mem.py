@@ -510,10 +510,8 @@ class MemDataCommon(MemDataBasic):
             self.StartTime = time.time()
         elif state == self.END_TIME:
             self.EndTime = time.time()
-            
-        optTime = self.EndTime-self.StartTime
-        print('Getting Data from Shanbay takes '+str(optTime)+' s')
-        return optTime
+            optTime = self.EndTime-self.StartTime
+            print('Getting Data from Shanbay takes '+str(optTime)+' s')
 
 
     def user_filter_data(self):
@@ -531,6 +529,7 @@ if __name__ == '__main__':
         teamName = '35K'
         teamID = 10879
         s = MemDataCommon(teamName, teamID)
+        s.time_cnt(s.START_TIME)
         res = s.get_team_all_mem()
         s.save_data_to_file(res, 'tmp.txt')
         s.save_data_to_db(s.read_data_from_file('tmp.txt'))
@@ -540,17 +539,22 @@ if __name__ == '__main__':
         s.chk_rate_last_10("Today")
         s.team_points_last_days(1)
         s.untask_user_list(1, 8)
-    
+        s.unchecked_today()
+        s.time_cnt(s.END_TIME)
+
+        
         teamName = '兰芷馥郁'
         teamID = 34543
         s = MemDataCommon(teamName, teamID)
+        s.time_cnt(s.START_TIME)
         res = s.get_team_all_mem()
         s.save_data_to_file(res, 'tmp.txt')
         s.save_data_to_db(s.read_data_from_file('tmp.txt'))
         s.chk_days_top_10('Today')
         s.chk_rate_last_10("Today")
-        pass
-        
+        s.time_cnt(s.END_TIME)
+
+
     except Exception as result:
         print("错误位置： %s" % result)
         
