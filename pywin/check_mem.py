@@ -114,11 +114,14 @@ class MemDataBasic(object):
         with open(file_name, 'r') as f:
             return f.read()
 
-    def exe_sql(self, cmd):
+    def exe_sql(self, cmd, file_name='tmp_data'):
         self.cs.execute(cmd)
         res = self.cs.fetchall()
+        p = ''
         for i in res:
-            print(i)
+            p += str(i)
+        with open(self.team_name + file_name, 'w') as f:
+            f.write(p)
         return res
 
 
@@ -328,16 +331,21 @@ class MemDataCommon(MemDataBasic):
     """
 
     def team_points_last_one_day(self):
-        return self.team_points_last_days(1)
+        val = self.team_points_last_days(1)
+        with open(self.team_name+'one_day_point', 'w') as f:
+            f.write(val)
 
 
     def team_points_last_week(self):
-        return self.team_points_last_days(7)
+        val = self.team_points_last_days(7)
+        with open(self.team_name+'last_week_point', 'w') as f:
+            f.write(val)
 
 
-    def team_points_last_week(self):
-        return self.team_points_last_days(30)
-
+    def team_points_last_month(self):
+        val = self.team_points_last_days(30)
+        with open(self.team_name+'last_month_point', 'w') as f:
+            f.write(val)
 
     def chk_days_top_10(self, table):
         """
@@ -351,7 +359,7 @@ class MemDataCommon(MemDataBasic):
         cmd = """ SELECT id, username, nickname, checkin_days  FROM %s ORDER BY points DESC LIMIT 10;
                     """ % (table)
         print("排名前十的用户:")
-        return self.exe_sql(cmd)
+        return self.exe_sql(cmd, 'chk_days_top_10')
         
         
     def age_below_21(self, table):
@@ -366,7 +374,7 @@ class MemDataCommon(MemDataBasic):
         cmd = """ SELECT id, username, nickname, checkin_days  FROM %s WHERE age<=21;
                     """ % (table)
         print("组龄低于 21 天的用户:")
-        return self.exe_sql(cmd)
+        return self.exe_sql(cmd, 'age_below_21')
 
     def age_over_100(self, table):
         """
@@ -380,7 +388,7 @@ class MemDataCommon(MemDataBasic):
         cmd = """ SELECT id, username, nickname, checkin_days  FROM %s WHERE age>=100;
                     """ % (table)
         print("获得组龄为 100 天的用户:")
-        return self.exe_sql(cmd)
+        return self.exe_sql(cmd, 'age_over_100')
     
     
     def age_equal_100s(self, table):
@@ -413,7 +421,7 @@ class MemDataCommon(MemDataBasic):
         cmd = """ SELECT id, username, nickname, checkin_days  FROM %s ORDER BY points DESC LIMIT 10;
                     """ % (table)
         print("总贡献值前十用户：")
-        return self.exe_sql(cmd)
+        return self.exe_sql(cmd, 'points_top_10')
     
     def age_top_10(self, table):
         """
@@ -427,7 +435,7 @@ class MemDataCommon(MemDataBasic):
         cmd = """ SELECT id, username, nickname, checkin_days  FROM %s ORDER BY age DESC LIMIT 10;
                     """ % (table)
         print("组龄前十用户：")
-        return self.exe_sql(cmd)
+        return self.exe_sql(cmd, 'age_top_10')
     
         
     def chk_days_top_10(self, table):
@@ -442,7 +450,7 @@ class MemDataCommon(MemDataBasic):
         cmd = """ SELECT id, username, nickname, checkin_days  FROM %s ORDER BY checkin_days DESC LIMIT 10;
                     """ % (table)
         print("打卡天数前十用户：")
-        return self.exe_sql(cmd)
+        return self.exe_sql(cmd, 'chk_days_top_10')
     
     
     def chk_rate_last_10(self, table):
@@ -457,7 +465,7 @@ class MemDataCommon(MemDataBasic):
         cmd = """ SELECT id, username, nickname, checkin_days, checkin_rate  FROM %s ORDER BY checkin_rate ASC LIMIT 10;
                     """ % (table)
         print("打卡率后十用户：")
-        return self.exe_sql(cmd)
+        return self.exe_sql(cmd, 'chk_rate_last_10')
     
     def untask_user_list(self, days, threshold):
         """
@@ -466,6 +474,7 @@ class MemDataCommon(MemDataBasic):
         threshold： 阈值，筛选出低于这个值得用户
         :return:
         """
+        res = ''
         data1 = self.read_all_data_from_db(time.strftime('%Y%m%d',  time.localtime()))
         data2 = self.read_all_data_from_db(time.strftime('%Y%m%d',  time.localtime(round(time.time())-86400*days)))
         val = []
@@ -488,8 +497,9 @@ class MemDataCommon(MemDataBasic):
         
         for i in val:
             if i['points_diff'] < threshold:
-                print("满足的成员: %d, %s, %d" % (i['id'], i['username'], i['points_diff']))
-    
+                res += "满足的成员: %d, %s, %d" % (i['id'], i['username'], i['points_diff'])
+        with open('untask_user_list.txt', 'w') as f:
+            f.write(res)
     
     def month_points_top_10(self):
         """
@@ -535,9 +545,9 @@ if __name__ == '__main__':
         s.save_data_to_db(s.read_data_from_file('tmp.txt'))
         s.unchecked_today()
         s.unchecked_ytd()
-        s.chk_days_top_10('Today')
+        s.chk_days_top_10("Today")
         s.chk_rate_last_10("Today")
-        s.team_points_last_days(1)
+        s.team_points_last_one_day()
         s.untask_user_list(1, 8)
         s.unchecked_today()
         s.time_cnt(s.END_TIME)
@@ -552,6 +562,7 @@ if __name__ == '__main__':
         s.save_data_to_db(s.read_data_from_file('tmp.txt'))
         s.chk_days_top_10('Today')
         s.chk_rate_last_10("Today")
+        s.team_points_last_one_day()
         s.time_cnt(s.END_TIME)
 
 
