@@ -120,8 +120,8 @@ class MemDataBasic(object):
         p = ''
         for i in res:
             p += str(i)
-        with open(self.team_name + file_name, 'w') as f:
-            f.write(p)
+        with open(self.team_name+'_'+ file_name, 'wb') as f:
+            f.write(p.encode('utf-8'))
         return res
 
 
@@ -331,20 +331,20 @@ class MemDataCommon(MemDataBasic):
     """
 
     def team_points_last_one_day(self):
-        val = self.team_points_last_days(1)
-        with open(self.team_name+'one_day_point', 'w') as f:
+        val = str(self.team_points_last_days(1))
+        with open(self.team_name+'_one_day_point', 'w') as f:
             f.write(val)
 
 
     def team_points_last_week(self):
-        val = self.team_points_last_days(7)
-        with open(self.team_name+'last_week_point', 'w') as f:
+        val = str(self.team_points_last_days(7))
+        with open(self.team_name+'_last_week_point', 'w') as f:
             f.write(val)
 
 
     def team_points_last_month(self):
-        val = self.team_points_last_days(30)
-        with open(self.team_name+'last_month_point', 'w') as f:
+        val = str(self.team_points_last_days(30))
+        with open(self.team_name+'_last_month_point', 'w') as f:
             f.write(val)
 
     def chk_days_top_10(self, table):
@@ -535,36 +535,37 @@ class MemDataCommon(MemDataBasic):
 
 
 if __name__ == '__main__':
+    
+    teamName = '35K'
+    teamID = 10879
+    s = MemDataCommon(teamName, teamID)
+    s.time_cnt(s.START_TIME)
+    # res = s.get_team_all_mem()
+    # s.save_data_to_file(res, teamName+'_tmp.txt')
+    s.save_data_to_db(s.read_data_from_file('tmp.txt'))
+    s.unchecked_today()
+    s.unchecked_ytd()
+    s.chk_days_top_10("Today")
+    s.chk_rate_last_10("Today")
+    s.team_points_last_one_day()
+    s.untask_user_list(1, 8)
+    s.unchecked_today()
+    s.time_cnt(s.END_TIME)
+    
+    teamName = '兰芷馥郁'
+    teamID = 34543
+    s = MemDataCommon(teamName, teamID)
+    s.time_cnt(s.START_TIME)
+    res = s.get_team_all_mem()
+    s.save_data_to_file(res, teamName + '_tmp.txt')
+    s.save_data_to_db(s.read_data_from_file('tmp.txt'))
+    s.chk_days_top_10('Today')
+    s.chk_rate_last_10("Today")
+    s.team_points_last_one_day()
+    s.time_cnt(s.END_TIME)
+    
     try:
-        teamName = '35K'
-        teamID = 10879
-        s = MemDataCommon(teamName, teamID)
-        s.time_cnt(s.START_TIME)
-        res = s.get_team_all_mem()
-        s.save_data_to_file(res, 'tmp.txt')
-        s.save_data_to_db(s.read_data_from_file('tmp.txt'))
-        s.unchecked_today()
-        s.unchecked_ytd()
-        s.chk_days_top_10("Today")
-        s.chk_rate_last_10("Today")
-        s.team_points_last_one_day()
-        s.untask_user_list(1, 8)
-        s.unchecked_today()
-        s.time_cnt(s.END_TIME)
-
-        
-        teamName = '兰芷馥郁'
-        teamID = 34543
-        s = MemDataCommon(teamName, teamID)
-        s.time_cnt(s.START_TIME)
-        res = s.get_team_all_mem()
-        s.save_data_to_file(res, 'tmp.txt')
-        s.save_data_to_db(s.read_data_from_file('tmp.txt'))
-        s.chk_days_top_10('Today')
-        s.chk_rate_last_10("Today")
-        s.team_points_last_one_day()
-        s.time_cnt(s.END_TIME)
-
+        pass
 
     except Exception as result:
         print("错误位置： %s" % result)
