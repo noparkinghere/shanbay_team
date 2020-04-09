@@ -540,8 +540,8 @@ if __name__ == '__main__':
     teamID = 10879
     s = MemDataCommon(teamName, teamID)
     s.time_cnt(s.START_TIME)
-    # res = s.get_team_all_mem()
-    # s.save_data_to_file(res, teamName+'_tmp.txt')
+    res = s.get_team_all_mem()
+    s.save_data_to_file(res, teamName+'_tmp.txt')
     s.save_data_to_db(s.read_data_from_file('tmp.txt'))
     s.unchecked_today()
     s.unchecked_ytd()
